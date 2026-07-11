@@ -1,0 +1,20 @@
+# Python
+backend/venv/
+backend/__pycache__/
+backend/**/__pycache__/
+*.pyc
+
+# Uploaded/generated media
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# Node / frontend
+frontend/node_modules/
+frontend/dist/
+
+# Env / secrets
+.env
+*.env.local
+
+# OS
+.DS_Store

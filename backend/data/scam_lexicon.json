@@ -1,0 +1,26 @@
+{
+  "guaranteed_returns": [
+    "guaranteed return", "guaranteed profit", "100% safe", "risk-free investment",
+    "assured returns", "no loss guarantee", "double your money", "triple your money"
+  ],
+  "urgency_pressure": [
+    "limited time offer", "act now", "only today", "last chance", "before market opens",
+    "closing in", "seats filling fast", "don't miss this opportunity"
+  ],
+  "insider_authority_claim": [
+    "sebi insider", "insider tip", "confidential information", "leaked report",
+    "government insider", "exchange insider", "regulator confirmed", "rbi insider"
+  ],
+  "impersonation_signal": [
+    "on behalf of sebi", "sebi has approved", "official sebi scheme", "sebi registered scheme",
+    "government backed stock scheme", "join our whatsapp group for tips", "join telegram for calls"
+  ],
+  "unrealistic_multiplier": [
+    "multibagger", "10x return", "20x return", "penny stock will explode", "hidden gem stock",
+    "become a crorepati", "turn 10000 into 1 lakh"
+  ],
+  "payment_solicitation": [
+    "send payment to join", "pay to unlock tips", "subscription fee for guaranteed calls",
+    "deposit to start trading", "advance fee for allotment"
+  ]
+}

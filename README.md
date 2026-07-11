@@ -1,0 +1,116 @@
+# Synthetic Media Fraud Detector
+
+**SEBI Securities Market TechSprint — Problem Statement: AI-Driven Detection of Synthetic Media**
+
+Detects deepfake / voice-cloned video and audio clips that impersonate SEBI officials, registered
+advisors, or public figures to push fraudulent stock tips (a documented, escalating fraud pattern
+in Indian markets — fake videos of well-known investors/regulators circulate on WhatsApp and
+YouTube pushing "guaranteed return" penny stocks).
+
+## Why this problem statement
+
+Of the four TechSprint problem statements, this one was chosen because it is simultaneously the
+most **topical** (SEBI has issued live advisories on exactly this fraud pattern), the most
+**technically differentiated** (multimodal forensics + agentic reasoning, vs. "another investment
+app" for the Super App statement), and the most **demoable** (a judge can watch a suspect clip go
+in and a scored, evidence-backed verdict come out in under a minute).
+
+## Architecture — multi-agent pipeline
+
+```
+Upload → Extract (ffmpeg) → Transcribe (faster-whisper)
+                                     │
+                    ┌────────────────┼─────────────────┐
+                    ▼                ▼                 ▼
+         Claims Agent (LLM)   Audio Forensics    Video Forensics
+        entities/claims/red      (librosa)          (opencv)
+           flags, intent      voice-clone tells   face-swap tells
+                    │                │                 │
+                    ▼                │                 │
+         Registry Cross-Check        │                 │
+        (fuzzy match vs mock          │                 │
+         SEBI intermediary DB)        │                 │
+                    │                │                 │
+                    └────────┬───────┴─────────────────┘
+                             ▼
+                    Scam Lexicon Scan (deterministic)
+                             │
+                             ▼
+                  Risk Synthesis Agent (LLM)
+          weighted scoring (auditable) + grounded
+             natural-language explanation
+                             │
+                             ▼
+                  Score + evidence report → UI
+```
+
+Each stage is an independently testable "agent" in the loose sense used throughout this build:
+a component with a narrow contract that the orchestrator (`backend/app/services/orchestrator.py`)
+wires into a pipeline, with per-stage progress exposed to the frontend for a live visualization.
+
+### Advanced concepts demonstrated
+
+- **Agentic orchestration**: a Python orchestrator coordinates seven independent stages (two of
+  them LLM-backed, five deterministic), each individually testable, with typed data contracts
+  between them rather than passing raw strings around.
+- **Structured LLM extraction (schema-constrained generation)**: the claims agent forces Gemini to
+  return JSON matching a strict schema (entities + role, claims, red-flag phrases, intent) — no
+  parsing of free text, no hallucinated shape.
+- **Grounded generation**: the final risk-synthesis agent is given only the structured evidence
+  dict and is explicitly instructed not to invent evidence — the summary it writes has to point at
+  numbers that actually exist in the pipeline's output.
+- **Multimodal forensics without a black-box model**: rather than a deep classifier requiring a
+  large labeled deepfake dataset and GPU training (infeasible in a hackathon timeframe), the audio
+  and video forensics modules compute the same signal-processing features real forensic
+  classifiers are seeded with — pitch jitter, spectral flatness, MFCC delta variance, silence-gap
+  regularity for audio; blink-toggle rate, face-region DCT frequency stability, brightness jitter
+  for video. Every number in the report is explainable and defensible, not a black-box confidence
+  score.
+- **RAG-style grounding against ground truth**: claimed identities are fuzzy-matched
+  (`rapidfuzz`) against a registered-intermediary registry rather than trusted at face value —
+  the same shape of check a live integration with SEBI's actual intermediary lookup would perform.
+- **Graceful degradation**: both LLM call sites (`app/services/llm_client.py`) fall back to a
+  deterministic rule-based extractor / templated summary if the API is unavailable (quota, auth,
+  network) — the pipeline never hard-fails just because an LLM call did. This was a real failure
+  mode hit during development (multiple API keys ran out of quota) and turned into a resilience
+  feature worth highlighting to judges: a live demo degrades gracefully instead of crashing.
+- **Auditable scoring**: the final risk score is a deterministic weighted combination of every
+  upstream signal (not an LLM-invented number), so it's reproducible and defensible to a
+  regulator's compliance/audit function — the LLM only narrates the *why*.
+
+## Running it
+
+```bash
+# Backend
+cd backend
+source venv/bin/activate   # venv already created + deps installed
+uvicorn app.main:app --port 8000
+
+# Frontend (separate terminal)
+cd frontend
+npm run dev -- --port 5180
+```
+
+Open `http://localhost:5180`, upload a video/audio clip, watch the pipeline run.
+
+Requires `ffmpeg` (installed via `brew install ffmpeg`) and a `GEMINI_API_KEY` in the repo-root
+`.env` (falls back to rule-based extraction/summary automatically if absent or quota-exhausted).
+
+## What's mocked vs. real for this prototype
+
+- **Real**: media extraction, Whisper transcription, all audio/video forensic feature extraction,
+  fuzzy registry matching logic, lexicon scanning, weighted risk scoring, LLM structured extraction
+  and synthesis, the full agentic pipeline and live UI.
+- **Mocked** (clearly labeled, swappable for production): the SEBI registered-intermediary list
+  (`backend/data/registered_advisors.csv`) stands in for SEBI's real intermediary lookup API/SCORES
+  database — the fuzzy-match cross-check logic is identical to what a live integration would run.
+
+## Next steps for a production version
+
+- Swap the mock registry CSV for SEBI's real registered-intermediary API.
+- Replace the heuristic forensics scores with an ensemble that also includes a trained deepfake
+  classifier (e.g. fine-tuned on FaceForensics++/ASVspoof) once labeled data and GPU budget exist —
+  the current heuristics are designed to be a first-pass, explainable filter, not a final word.
+- Add a feedback loop where analyst verdicts (confirmed fraud / false positive) retrain the
+  weighting in `risk_engine.py`.
+- Ingest directly from WhatsApp Business API / YouTube Data API tip lines instead of manual upload.

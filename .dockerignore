@@ -1,0 +1,11 @@
+backend/venv
+backend/uploads
+backend/**/__pycache__
+frontend/node_modules
+frontend/dist
+.git
+.gitignore
+README.md
+SUBMISSION_TEXT.md
+*.log
+.DS_Store
