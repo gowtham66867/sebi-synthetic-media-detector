@@ -1,5 +1,8 @@
 Ready-to-paste text for the SEBI Securities Market TechSprint registration form fields.
 
+**Live demo**: https://sebi-synthetic-media-detector-564262191703.asia-south1.run.app
+**Source code**: https://github.com/gowtham66867/sebi-synthetic-media-detector
+
 ---
 
 ### Theme
