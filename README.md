@@ -2,6 +2,9 @@
 
 **SEBI Securities Market TechSprint — Problem Statement: AI-Driven Detection of Synthetic Media**
 
+**Live demo**: https://sebi-synthetic-media-detector-564262191703.asia-south1.run.app
+**Source**: https://github.com/gowtham66867/sebi-synthetic-media-detector
+
 Detects deepfake / voice-cloned video and audio clips that impersonate SEBI officials, registered
 advisors, or public figures to push fraudulent stock tips (a documented, escalating fraud pattern
 in Indian markets — fake videos of well-known investors/regulators circulate on WhatsApp and
@@ -92,6 +95,28 @@ npm run dev -- --port 5180
 ```
 
 Open `http://localhost:5180`, upload a video/audio clip, watch the pipeline run.
+
+## Deployment
+
+Single container (multi-stage `Dockerfile`: builds the frontend, bakes the faster-whisper model in
+so cold starts don't hit HuggingFace, serves the built frontend + API from one FastAPI process).
+Deployed to Cloud Run:
+
+```bash
+gcloud secrets create sebi-synthetic-media-gemini-key --data-file=- <<< "$GEMINI_API_KEY"
+gcloud secrets add-iam-policy-binding sebi-synthetic-media-gemini-key \
+  --member="serviceAccount:PROJECT_NUMBER-compute@developer.gserviceaccount.com" \
+  --role="roles/secretmanager.secretAccessor"
+
+gcloud run deploy sebi-synthetic-media-detector \
+  --source . --region asia-south1 --allow-unauthenticated \
+  --memory 2Gi --cpu 2 --timeout 300 --no-cpu-throttling \
+  --set-secrets GEMINI_API_KEY=sebi-synthetic-media-gemini-key:latest
+```
+
+`--no-cpu-throttling` matters: the pipeline runs in a background thread after the HTTP response
+returns, and Cloud Run only allocates CPU during active request handling by default — without
+this flag the background pipeline stalls between polls instead of actually progressing.
 
 Requires `ffmpeg` (installed via `brew install ffmpeg`) and a `GEMINI_API_KEY` in the repo-root
 `.env` (falls back to rule-based extraction/summary automatically if absent or quota-exhausted).
