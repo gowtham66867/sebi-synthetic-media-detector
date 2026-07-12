@@ -133,18 +133,40 @@ pip install -r requirements-dev.txt
 pytest
 ```
 
-27 cases covering forensics edge cases, lexicon scanning, registry fuzzy-match thresholds,
-risk-engine scoring/caps, LLM-fallback behavior, and API-level input validation (400/404/413) —
-none of them require network access, ffmpeg, or a real Gemini key.
+33 cases covering forensics edge cases, lexicon scanning, registry fuzzy-match thresholds,
+risk-engine scoring/caps, LLM-fallback behavior, rate limiting, and API-level input validation
+(400/404/413/429) — none of them require network access, ffmpeg, or a real Gemini key.
+
+## A small honest validation of the forensics heuristics
+
+"We never checked this against a real clip" was a fair criticism of the first version of this
+project. `backend/scripts/validate_forensics.py` runs a small, explicitly-not-rigorous check: 5
+TTS clips (macOS `say`, 5 different voices) against 5 real human-speech clips (public-domain
+LibriVox recordings, via Archive.org). Result from one run:
+
+| set                | scores                          | mean  |
+|---------------------|----------------------------------|-------|
+| synthetic (TTS)     | 0.165, 0.235, 0.212, 0.219, 0.265 | 0.219 |
+| real (human speech) | 0.181, 0.210, 0.134, 0.091, 0.051 | 0.133 |
+
+The synthetic mean is higher, so there's real directional signal — but the two distributions
+overlap (the real set's highest score, 0.210, sits inside the synthetic set's range). At n=5 per
+class this is evidence worth following up, not proof the heuristics work. Treat the forensic
+scores as a first-pass explainable filter, not a validated classifier, until this is run against
+something like ASVspoof at real scale.
 
 ## What's mocked vs. real for this prototype
 
-- **Real**: media extraction, Whisper transcription, all audio/video forensic feature extraction,
-  fuzzy registry matching logic, lexicon scanning, weighted risk scoring, LLM structured extraction
-  and synthesis, the full agentic pipeline and live UI.
+- **Real**: media extraction, Whisper transcription, all audio/video forensic feature extraction
+  (given a small, honest, non-rigorous validation — see above), fuzzy registry matching logic,
+  lexicon scanning, weighted risk scoring, LLM structured extraction and synthesis, per-IP rate
+  limiting on the compute-triggering endpoint, the full agentic pipeline and live UI.
 - **Mocked** (clearly labeled, swappable for production): the SEBI registered-intermediary list
   (`backend/data/registered_advisors.csv`) stands in for SEBI's real intermediary lookup API/SCORES
   database — the fuzzy-match cross-check logic is identical to what a live integration would run.
+  Checked during this build: SEBI does not publish a bulk-downloadable open dataset of registered
+  intermediaries, only a lookup portal (siportal.sebi.gov.in) — a real integration needs an actual
+  API partnership, not more code.
 
 ## Next steps for a production version
 
@@ -155,3 +177,7 @@ none of them require network access, ffmpeg, or a real Gemini key.
 - Add a feedback loop where analyst verdicts (confirmed fraud / false positive) retrain the
   weighting in `risk_engine.py`.
 - Ingest directly from WhatsApp Business API / YouTube Data API tip lines instead of manual upload.
+- Add real authentication once this moves past demo/triage use — the rate limiter
+  (`app/services/rate_limiter.py`) caps abuse per IP but is deliberately not a substitute for auth,
+  and is per-instance rather than Firestore-backed (a deliberate tradeoff: worth revisiting if this
+  ever needs to enforce a hard per-tenant quota rather than casual abuse protection on a demo).

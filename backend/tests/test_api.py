@@ -1,11 +1,20 @@
 from unittest.mock import patch
 
+import pytest
 from fastapi.testclient import TestClient
 
 from app.config import UPLOAD_DIR
 from app.main import app
+from app.services import rate_limiter
 
 client = TestClient(app)
+
+
+@pytest.fixture(autouse=True)
+def _reset_rate_limiter():
+    # All requests from TestClient share one IP ("testclient"), so without this every
+    # test in this file would draw down the same rate-limit bucket and order would matter.
+    rate_limiter._requests_by_ip = {}
 
 
 def test_health_endpoint():
@@ -47,6 +56,44 @@ def test_upload_filename_is_not_client_controlled():
         for f in new_files:
             assert "passed" not in f.name
             assert ".." not in f.name
+    finally:
+        for f in set(UPLOAD_DIR.iterdir()) - before:
+            f.unlink(missing_ok=True)
+
+
+def test_analyze_rate_limited_returns_429(monkeypatch):
+    """The one endpoint that triggers real compute cost (Whisper + Gemini) must cap abuse."""
+    monkeypatch.setattr(rate_limiter, "_MAX_REQUESTS_PER_WINDOW", 2)
+    before = set(UPLOAD_DIR.iterdir())
+    try:
+        payload = {"file": ("clip.wav", b"RIFF....fake-audio-content", "audio/wav")}
+        assert client.post("/api/analyze", files=payload).status_code == 200
+        assert client.post("/api/analyze", files=payload).status_code == 200
+        resp = client.post("/api/analyze", files=payload)
+        assert resp.status_code == 429
+    finally:
+        for f in set(UPLOAD_DIR.iterdir()) - before:
+            f.unlink(missing_ok=True)
+
+
+def test_client_ip_prefers_x_forwarded_for(monkeypatch):
+    """Cloud Run terminates the connection at its load balancer — the real client IP
+    only survives in X-Forwarded-For, not request.client.host."""
+    captured = {}
+
+    def fake_is_allowed(ip):
+        captured["ip"] = ip
+        return True
+
+    monkeypatch.setattr(rate_limiter, "is_allowed", fake_is_allowed)
+    before = set(UPLOAD_DIR.iterdir())
+    try:
+        client.post(
+            "/api/analyze",
+            files={"file": ("clip.wav", b"data", "audio/wav")},
+            headers={"x-forwarded-for": "203.0.113.5, 10.0.0.1"},
+        )
+        assert captured["ip"] == "203.0.113.5"
     finally:
         for f in set(UPLOAD_DIR.iterdir()) - before:
             f.unlink(missing_ok=True)

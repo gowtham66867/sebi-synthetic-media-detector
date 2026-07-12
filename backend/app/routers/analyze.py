@@ -1,10 +1,10 @@
 import uuid
 from pathlib import Path
 
-from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi import APIRouter, File, HTTPException, Request, UploadFile
 
 from app.config import UPLOAD_DIR
-from app.services import orchestrator
+from app.services import orchestrator, rate_limiter
 
 router = APIRouter(prefix="/api")
 
@@ -13,8 +13,21 @@ _CHUNK_SIZE = 1024 * 1024
 MAX_UPLOAD_BYTES = 100 * 1024 * 1024
 
 
+def _client_ip(request: Request) -> str:
+    # Cloud Run's load balancer terminates the connection and forwards the real
+    # client IP as the first entry in X-Forwarded-For; request.client.host would
+    # otherwise just be the LB's internal address.
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return request.client.host if request.client else "unknown"
+
+
 @router.post("/analyze")
-async def analyze(file: UploadFile = File(...)):
+async def analyze(request: Request, file: UploadFile = File(...)):
+    if not rate_limiter.is_allowed(_client_ip(request)):
+        raise HTTPException(429, "Too many analysis requests from this address. Please try again later.")
+
     suffix = Path(file.filename or "").suffix.lower()
     if suffix not in _ALLOWED_SUFFIXES:
         raise HTTPException(400, f"Unsupported file type '{suffix}'. Allowed: {sorted(_ALLOWED_SUFFIXES)}")
