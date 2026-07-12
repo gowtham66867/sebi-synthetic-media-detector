@@ -1,0 +1,26 @@
+{
+  "credential_harvesting": [
+    "update your kyc", "verify your account", "confirm your details", "re-verify your pan",
+    "your account will be suspended", "click here to verify", "update your password",
+    "confirm your login", "enter your otp", "share your otp"
+  ],
+  "urgency_pressure": [
+    "act immediately", "within 24 hours", "account will be blocked", "final reminder",
+    "urgent action required", "immediate action needed", "failure to comply", "last warning"
+  ],
+  "authority_impersonation": [
+    "sebi has detected", "on behalf of sebi", "official sebi notice", "sebi compliance team",
+    "your broker has flagged", "rbi notice", "income tax department notice", "exchange compliance alert"
+  ],
+  "financial_request": [
+    "processing fee required", "pay to unblock", "refund pending payment", "pay penalty to avoid",
+    "transfer to release funds", "deposit to reactivate"
+  ],
+  "suspicious_link_language": [
+    "click the link below", "download the attached form", "open the attachment to proceed",
+    "login via this link", "use this secure link"
+  ],
+  "generic_greeting": [
+    "dear customer", "dear user", "dear valued investor", "dear account holder"
+  ]
+}

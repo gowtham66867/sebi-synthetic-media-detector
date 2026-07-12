@@ -67,6 +67,97 @@ body {
   padding: 32px 24px 64px;
 }
 
+.tab-row {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 20px 24px 0;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.tab-btn {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  padding: 9px 16px;
+  border-radius: 8px 8px 0 0;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tab-btn.active {
+  background: var(--panel);
+  color: var(--text);
+  border-color: var(--border);
+  border-bottom-color: var(--panel);
+}
+
+.text-input {
+  width: 100%;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13.5px;
+  padding: 12px;
+  margin: 12px 0;
+  resize: vertical;
+}
+
+.text-input-actions {
+  margin-bottom: 12px;
+}
+
+.text-field {
+  width: 100%;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13.5px;
+  padding: 10px 12px;
+  margin: 6px 0 14px;
+}
+
+.field-label-standalone {
+  display: block;
+  color: var(--muted);
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 10px;
+}
+
+.verify-input-row {
+  display: flex;
+  gap: 10px;
+  margin: 14px 0 6px;
+}
+
+.verify-input-row .text-field {
+  margin: 0;
+  flex: 1;
+}
+
+.mono-text {
+  font-family: "SF Mono", Menlo, Consolas, monospace;
+  font-size: 12.5px;
+  word-break: break-all;
+}
+
+.qr-image {
+  width: 120px;
+  height: 120px;
+  border-radius: 8px;
+  background: white;
+  padding: 8px;
+  flex-shrink: 0;
+}
+
 .upload-card, .card, .pipeline, .error-card {
   background: var(--panel);
   border: 1px solid var(--border);

@@ -11,3 +11,5 @@ scipy==1.13.1
 rapidfuzz==3.9.7
 python-dotenv==1.0.1
 google-cloud-firestore==2.19.0
+cryptography==49.0.0
+qrcode[pil]==7.4.2

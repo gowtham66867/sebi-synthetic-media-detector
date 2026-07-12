@@ -6,9 +6,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.routers import analyze
+from app.routers import analyze, authenticity, phishing
 
-app = FastAPI(title="Synthetic Media Fraud Detector — SEBI TechSprint")
+app = FastAPI(title="AI-Driven Detection of Synthetic Media and Phishing Attacks — SEBI TechSprint")
 
 # Only needed for local dev, where the Vite dev server (5173/5180) and the API
 # (8000) are different origins. In production the built frontend is served
@@ -23,6 +23,8 @@ app.add_middleware(
 )
 
 app.include_router(analyze.router)
+app.include_router(phishing.router)
+app.include_router(authenticity.router)
 
 
 @app.get("/api/health")

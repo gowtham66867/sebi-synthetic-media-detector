@@ -21,6 +21,16 @@ _lock = threading.Lock()
 _requests_by_ip: dict[str, list[float]] = {}
 
 
+def client_ip_from_request(request) -> str:
+    # Cloud Run's load balancer terminates the connection and forwards the real
+    # client IP as the first entry in X-Forwarded-For; request.client.host would
+    # otherwise just be the LB's internal address.
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return request.client.host if request.client else "unknown"
+
+
 def is_allowed(client_ip: str) -> bool:
     now = time.time()
     with _lock:

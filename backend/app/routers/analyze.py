@@ -13,19 +13,9 @@ _CHUNK_SIZE = 1024 * 1024
 MAX_UPLOAD_BYTES = 100 * 1024 * 1024
 
 
-def _client_ip(request: Request) -> str:
-    # Cloud Run's load balancer terminates the connection and forwards the real
-    # client IP as the first entry in X-Forwarded-For; request.client.host would
-    # otherwise just be the LB's internal address.
-    forwarded = request.headers.get("x-forwarded-for")
-    if forwarded:
-        return forwarded.split(",")[0].strip()
-    return request.client.host if request.client else "unknown"
-
-
 @router.post("/analyze")
 async def analyze(request: Request, file: UploadFile = File(...)):
-    if not rate_limiter.is_allowed(_client_ip(request)):
+    if not rate_limiter.is_allowed(rate_limiter.client_ip_from_request(request)):
         raise HTTPException(429, "Too many analysis requests from this address. Please try again later.")
 
     suffix = Path(file.filename or "").suffix.lower()

@@ -42,3 +42,50 @@ export const STAGE_LABELS: Record<string, string> = {
   lexicon: "Scam Lexicon Scan",
   risk: "Risk Synthesis (Agent)",
 };
+
+export interface PhishingReport {
+  risk_score: number;
+  risk_level: "LOW" | "MEDIUM" | "HIGH";
+  summary: string;
+  phishing_claims: {
+    claimed_sender: string | null;
+    urls_found: string[];
+    requested_actions: string[];
+    red_flag_phrases: string[];
+    verdict: "likely_phishing" | "suspicious" | "likely_legitimate" | "unclear";
+    extraction_method: "llm" | "rule_based_fallback";
+  };
+  lexicon_hits: Record<string, string[]>;
+  message_text: string;
+}
+
+export interface PhishingJobStatus {
+  status: "running" | "completed" | "failed";
+  stages: Record<string, StageStatus>;
+  result: PhishingReport | null;
+  error: string | null;
+}
+
+export const PHISHING_STAGE_LABELS: Record<string, string> = {
+  claims: "Extract Indicators (Agent)",
+  lexicon: "Phishing Lexicon Scan",
+  risk: "Risk Synthesis (Agent)",
+};
+
+export interface IssueResponse {
+  reference_id: string;
+  verify_url: string;
+  qr_data_uri: string;
+  issued_at: string;
+}
+
+export interface VerifyResponse {
+  verified: boolean;
+  reference_id: string;
+  reason?: string;
+  issuer?: string;
+  communication_type?: string;
+  content?: string;
+  content_hash?: string;
+  issued_at?: string;
+}
