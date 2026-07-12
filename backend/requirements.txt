@@ -10,3 +10,4 @@ numpy==1.26.4
 scipy==1.13.1
 rapidfuzz==3.9.7
 python-dotenv==1.0.1
+google-cloud-firestore==2.19.0

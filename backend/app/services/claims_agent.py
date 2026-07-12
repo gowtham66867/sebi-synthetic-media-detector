@@ -45,8 +45,12 @@ _RESPONSE_SCHEMA = {
 }
 
 _NAME_PATTERNS = [
-    re.compile(r"\b(?:i am|i'm|this is|myself)\s+([A-Z][a-zA-Z]+(?:\s[A-Z][a-zA-Z]+){0,2})", re.IGNORECASE),
-    re.compile(r"\bon behalf of\s+([A-Z][a-zA-Z]+(?:\s[A-Z][a-zA-Z]+){0,3})", re.IGNORECASE),
+    # Case-insensitivity is scoped to the trigger phrase only (via inline (?i:...)) —
+    # applying it to the whole pattern let lowercase connector words like "from" match
+    # the [A-Z] capture group too, so "I am Rakesh Gupta from SEBI..." over-captured
+    # "Rakesh Gupta from" as the name instead of stopping at "Gupta".
+    re.compile(r"\b(?i:i am|i'm|this is|myself)\s+([A-Z][a-zA-Z]+(?:\s[A-Z][a-zA-Z]+){0,2})"),
+    re.compile(r"\b(?i:on behalf of)\s+([A-Z][a-zA-Z]+(?:\s[A-Z][a-zA-Z]+){0,3})"),
 ]
 _ADVISOR_HINTS = ("advisor", "advisory", "wealth", "consult")
 _ANALYST_HINTS = ("research", "analyst", "analysis")
