@@ -45,7 +45,7 @@ export const STAGE_LABELS: Record<string, string> = {
 
 export interface PhishingReport {
   risk_score: number;
-  risk_level: "LOW" | "MEDIUM" | "HIGH";
+  risk_level: "LOW" | "MEDIUM" | "HIGH" | "OUT_OF_SCOPE";
   summary: string;
   phishing_claims: {
     claimed_sender: string | null;
@@ -56,6 +56,7 @@ export interface PhishingReport {
     extraction_method: "llm" | "rule_based_fallback";
   };
   lexicon_hits: Record<string, string[]>;
+  severe_content_hits?: Record<string, string[]>;
   message_text: string;
 }
 

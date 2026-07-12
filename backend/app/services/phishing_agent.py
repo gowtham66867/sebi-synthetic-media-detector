@@ -27,7 +27,11 @@ Return ONLY structured data matching the schema. Be conservative — only extrac
 _RESPONSE_SCHEMA = {
     "type": "object",
     "properties": {
-        "claimed_sender": {"type": ["string", "null"]},
+        # Gemini's schema dialect doesn't support JSON-Schema-style ["string","null"] type
+        # lists for nullable fields — it needs the OpenAPI-3.0-style "nullable" key instead.
+        # The list form is silently rejected by the SDK's schema validation, which meant
+        # this whole extraction call fell back to the rule-based path on every request.
+        "claimed_sender": {"type": "string", "nullable": True},
         "urls_found": {"type": "array", "items": {"type": "string"}},
         "requested_actions": {"type": "array", "items": {"type": "string"}},
         "red_flag_phrases": {"type": "array", "items": {"type": "string"}},

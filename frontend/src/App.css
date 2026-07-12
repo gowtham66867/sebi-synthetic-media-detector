@@ -270,6 +270,9 @@ body {
 .risk-banner.risk-HIGH { background: linear-gradient(135deg, rgba(255,84,112,0.15), transparent); border-color: rgba(255,84,112,0.4); }
 .risk-banner.risk-MEDIUM { background: linear-gradient(135deg, rgba(255,176,32,0.15), transparent); border-color: rgba(255,176,32,0.4); }
 .risk-banner.risk-LOW { background: linear-gradient(135deg, rgba(47,212,122,0.15), transparent); border-color: rgba(47,212,122,0.4); }
+/* Deliberately not on the red/amber/green risk spectrum — this isn't a risk level, it's
+   "this tool made no safety judgment at all," which must never read as reassuring. */
+.risk-banner.risk-OUT_OF_SCOPE { background: linear-gradient(135deg, rgba(167,139,250,0.15), transparent); border-color: rgba(167,139,250,0.4); }
 
 .risk-score {
   font-size: 42px;
@@ -282,6 +285,7 @@ body {
 .risk-banner.risk-HIGH .risk-level { color: var(--high); }
 .risk-banner.risk-MEDIUM .risk-level { color: var(--med); }
 .risk-banner.risk-LOW .risk-level { color: var(--low); }
+.risk-banner.risk-OUT_OF_SCOPE .risk-level { color: #a78bfa; }
 
 .risk-banner p { margin: 0; color: var(--text); line-height: 1.5; font-size: 14px; }
 

@@ -32,7 +32,32 @@ indicators, lexicon hits, a computed risk score) for a reported email/message. W
 name, and end with one recommended next action. Do not invent evidence not present in the input. Do not use markdown."""
 
 
-def compute_phishing_risk(claims: dict, lexicon_hits: dict) -> dict:
+_OUT_OF_SCOPE_SUMMARY = (
+    "This message does not match this tool's financial-phishing detection criteria (credential "
+    "harvesting, urgency pressure, authority impersonation, payment requests). It contains language "
+    "associated with a threat to life or physical safety, which this tool is not designed to assess. "
+    "This is NOT a statement that the content is safe, benign, or legitimate — the absence of phishing "
+    "signals is not a safety judgment. If this describes a genuine threat, report it immediately to the "
+    "relevant law-enforcement or platform trust & safety channel."
+)
+
+
+def compute_phishing_risk(claims: dict, lexicon_hits: dict, severe_content_hits: dict | None = None) -> dict:
+    if severe_content_hits:
+        # Bypasses the phishing scoring machinery and any LLM call entirely: this path only needs to
+        # be safe and deterministic, not clever. A phishing risk score is meaningless for content
+        # that was never a phishing attempt in the first place, and "LOW RISK" would misrepresent
+        # "no financial-phishing signals found" as "this content is safe" — exactly the failure mode
+        # this branch exists to prevent.
+        return {
+            "risk_score": 0.0,
+            "risk_level": "OUT_OF_SCOPE",
+            "phishing_claims": claims,
+            "lexicon_hits": lexicon_hits,
+            "severe_content_hits": severe_content_hits,
+            "summary": _OUT_OF_SCOPE_SUMMARY,
+        }
+
     lexicon_score = min(sum(_LEXICON_WEIGHT.get(cat, 0.05) for cat in lexicon_hits), 1.0)
     verdict_score = _VERDICT_SCORE.get(claims.get("verdict"), 0.2)
     url_score = 0.3 if claims.get("urls_found") else 0.0

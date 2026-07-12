@@ -127,8 +127,38 @@ export default function PhishingAnalysis() {
 }
 
 function PhishingReportView({ report }: { report: PhishingReport }) {
-  const pct = Math.round(report.risk_score * 100);
   const claims = report.phishing_claims;
+
+  if (report.risk_level === "OUT_OF_SCOPE") {
+    return (
+      <section className="report">
+        <div className="risk-banner risk-OUT_OF_SCOPE">
+          <div className="risk-score" style={{ fontSize: "1.6rem" }}>⚠</div>
+          <div>
+            <div className="risk-level">OUTSIDE THIS TOOL'S SCOPE</div>
+            <p>{report.summary}</p>
+          </div>
+        </div>
+        {report.severe_content_hits && Object.keys(report.severe_content_hits).length > 0 && (
+          <div className="card">
+            <h3>Flagged Language</h3>
+            {Object.entries(report.severe_content_hits).map(([cat, phrases]) => (
+              <div key={cat} className="lexicon-cat">
+                <span className="chip warn">{cat.replaceAll("_", " ")}</span>
+                <span className="muted"> — "{phrases.join('", "')}"</span>
+              </div>
+            ))}
+          </div>
+        )}
+        <div className="card transcript-card">
+          <h3>Message Text</h3>
+          <p className="transcript-text">{report.message_text}</p>
+        </div>
+      </section>
+    );
+  }
+
+  const pct = Math.round(report.risk_score * 100);
   return (
     <section className="report">
       <div className={`risk-banner risk-${report.risk_level}`}>

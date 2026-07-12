@@ -1,4 +1,4 @@
-from app.services.lexicon import scan_phishing_text, scan_transcript
+from app.services.lexicon import scan_phishing_text, scan_severe_content, scan_transcript
 
 
 def test_detects_multiple_categories():
@@ -31,4 +31,17 @@ def test_phishing_lexicon_detects_categories():
 
 def test_phishing_lexicon_clean_text_has_no_hits():
     hits = scan_phishing_text("Hi team, the meeting is at 3pm tomorrow.")
+    assert hits == {}
+
+
+def test_severe_content_flags_threat_language():
+    """Regression test for a real production issue: a bomb threat pasted into the
+    phishing analyzer scored 0/100 'likely legitimate' because it has no financial-
+    phishing signals — which is true but was being misrepresented as a safety judgment."""
+    hits = scan_severe_content("There is a bomb planted in parliament in New Delhi")
+    assert "threat_to_life_or_safety" in hits
+
+
+def test_severe_content_clean_text_has_no_hits():
+    hits = scan_severe_content("Hi team, the meeting is at 3pm tomorrow.")
     assert hits == {}

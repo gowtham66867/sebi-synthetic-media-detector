@@ -1,0 +1,6 @@
+{
+  "threat_to_life_or_safety": [
+    "bomb", "explosive device", "planted a bomb", "shoot", "shooting", "kill", "murder",
+    "hostage", "terrorist attack", "blow up", "gun down", "mass casualty", "detonate"
+  ]
+}
