@@ -100,7 +100,7 @@ Open `http://localhost:5180`, upload a video/audio clip, watch the pipeline run.
 
 Single container (multi-stage `Dockerfile`: builds the frontend, bakes the faster-whisper model in
 so cold starts don't hit HuggingFace, serves the built frontend + API from one FastAPI process).
-Deployed to Cloud Run:
+Deployed to Cloud Run via the committed `deploy.sh`:
 
 ```bash
 gcloud secrets create sebi-synthetic-media-gemini-key --data-file=- <<< "$GEMINI_API_KEY"
@@ -108,18 +108,34 @@ gcloud secrets add-iam-policy-binding sebi-synthetic-media-gemini-key \
   --member="serviceAccount:PROJECT_NUMBER-compute@developer.gserviceaccount.com" \
   --role="roles/secretmanager.secretAccessor"
 
-gcloud run deploy sebi-synthetic-media-detector \
-  --source . --region asia-south1 --allow-unauthenticated \
-  --memory 2Gi --cpu 2 --timeout 300 --no-cpu-throttling \
-  --set-secrets GEMINI_API_KEY=sebi-synthetic-media-gemini-key:latest
+GCP_PROJECT=your-project ./deploy.sh
 ```
 
 `--no-cpu-throttling` matters: the pipeline runs in a background thread after the HTTP response
 returns, and Cloud Run only allocates CPU during active request handling by default — without
-this flag the background pipeline stalls between polls instead of actually progressing.
+this flag the background pipeline stalls between polls instead of actually progressing. This is
+baked into `deploy.sh` rather than left as something to remember by hand.
+
+Job state lives in Firestore (`app/services/job_store.py`), not in a process-local dict — the
+in-memory version silently 404'd real in-progress jobs the moment Cloud Run ran more than one
+instance, since a poll could land on an instance that never ran the job. Local dev without GCP
+credentials falls back to the in-memory store automatically; the same graceful-degradation pattern
+used for the LLM call sites.
 
 Requires `ffmpeg` (installed via `brew install ffmpeg`) and a `GEMINI_API_KEY` in the repo-root
 `.env` (falls back to rule-based extraction/summary automatically if absent or quota-exhausted).
+
+## Tests
+
+```bash
+cd backend
+pip install -r requirements-dev.txt
+pytest
+```
+
+27 cases covering forensics edge cases, lexicon scanning, registry fuzzy-match thresholds,
+risk-engine scoring/caps, LLM-fallback behavior, and API-level input validation (400/404/413) —
+none of them require network access, ffmpeg, or a real Gemini key.
 
 ## What's mocked vs. real for this prototype
 
