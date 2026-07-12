@@ -45,10 +45,16 @@ def _run_pipeline(job_id: str, text: str):
         _store.set_stage(job_id, "lexicon", "running")
         lexicon_hits = lexicon.scan_phishing_text(text)
         severe_content_hits = lexicon.scan_severe_content(text)
+        # Same scam lexicon the media pipeline uses — a stock-scam script pasted into this
+        # phishing tool has no credential-harvesting/phishing patterns to find, but it's
+        # still fraud, just not phishing. Without this, that case would default to
+        # "likely_legitimate / LOW RISK," the exact mislabeling this file's OUT_OF_SCOPE
+        # path exists to prevent — just for a different reason than a severe-content hit.
+        scam_hits = lexicon.scan_transcript(text)
         _store.set_stage(job_id, "lexicon", "done")
 
         _store.set_stage(job_id, "risk", "running")
-        evidence = phishing_risk_engine.compute_phishing_risk(claims, lexicon_hits, severe_content_hits)
+        evidence = phishing_risk_engine.compute_phishing_risk(claims, lexicon_hits, severe_content_hits, scam_hits)
         evidence["message_text"] = text
         _store.set_stage(job_id, "risk", "done")
 

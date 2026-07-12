@@ -57,6 +57,7 @@ export interface PhishingReport {
   };
   lexicon_hits: Record<string, string[]>;
   severe_content_hits?: Record<string, string[]>;
+  scam_hits?: Record<string, string[]>;
   message_text: string;
 }
 

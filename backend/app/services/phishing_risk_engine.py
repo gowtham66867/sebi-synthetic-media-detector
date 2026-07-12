@@ -42,20 +42,41 @@ _OUT_OF_SCOPE_SUMMARY = (
 )
 
 
-def compute_phishing_risk(claims: dict, lexicon_hits: dict, severe_content_hits: dict | None = None) -> dict:
-    if severe_content_hits:
+def _wrong_tool_summary(scam_hits: dict) -> str:
+    categories = ", ".join(cat.replace("_", " ") for cat in scam_hits)
+    return (
+        f"This message does not match this tool's financial-phishing detection criteria (credential "
+        f"harvesting, urgency pressure, authority impersonation, payment requests), but it does contain "
+        f"language associated with a different fraud pattern this tool doesn't screen for: {categories}. "
+        f"This is NOT a statement that the content is legitimate — it means this specific check found "
+        f"nothing, not that the message is safe. Investment-tip/stock-scam content like this is what the "
+        f"'Suspect Clip' analyzer is built to score; this 'Suspicious Message' tool is scoped to phishing "
+        f"emails/messages specifically."
+    )
+
+
+def compute_phishing_risk(
+    claims: dict,
+    lexicon_hits: dict,
+    severe_content_hits: dict | None = None,
+    scam_hits: dict | None = None,
+) -> dict:
+    if severe_content_hits or (scam_hits and not lexicon_hits):
         # Bypasses the phishing scoring machinery and any LLM call entirely: this path only needs to
         # be safe and deterministic, not clever. A phishing risk score is meaningless for content
         # that was never a phishing attempt in the first place, and "LOW RISK" would misrepresent
         # "no financial-phishing signals found" as "this content is safe" — exactly the failure mode
-        # this branch exists to prevent.
+        # this branch exists to prevent, whether the content is a threat of violence or just fraud of
+        # a different kind (investment scam language) that this specific tool isn't scoped to catch.
+        summary = _OUT_OF_SCOPE_SUMMARY if severe_content_hits else _wrong_tool_summary(scam_hits)
         return {
             "risk_score": 0.0,
             "risk_level": "OUT_OF_SCOPE",
             "phishing_claims": claims,
             "lexicon_hits": lexicon_hits,
-            "severe_content_hits": severe_content_hits,
-            "summary": _OUT_OF_SCOPE_SUMMARY,
+            "severe_content_hits": severe_content_hits or {},
+            "scam_hits": scam_hits or {},
+            "summary": summary,
         }
 
     lexicon_score = min(sum(_LEXICON_WEIGHT.get(cat, 0.05) for cat in lexicon_hits), 1.0)

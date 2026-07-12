@@ -150,6 +150,17 @@ function PhishingReportView({ report }: { report: PhishingReport }) {
             ))}
           </div>
         )}
+        {report.scam_hits && Object.keys(report.scam_hits).length > 0 && (
+          <div className="card">
+            <h3>Matched Fraud Language (Suspect Clip Lexicon)</h3>
+            {Object.entries(report.scam_hits).map(([cat, phrases]) => (
+              <div key={cat} className="lexicon-cat">
+                <span className="chip warn">{cat.replaceAll("_", " ")}</span>
+                <span className="muted"> — "{phrases.join('", "')}"</span>
+              </div>
+            ))}
+          </div>
+        )}
         <div className="card transcript-card">
           <h3>Message Text</h3>
           <p className="transcript-text">{report.message_text}</p>

@@ -13,8 +13,10 @@ def _compute(**overrides):
     }
     claims.update(overrides.pop("claims", {}))
     lexicon_hits = overrides.pop("lexicon_hits", {})
+    severe_content_hits = overrides.pop("severe_content_hits", None)
+    scam_hits = overrides.pop("scam_hits", None)
     with patch("app.services.phishing_risk_engine.llm_client.try_generate_text", return_value="canned summary"):
-        return compute_phishing_risk(claims, lexicon_hits)
+        return compute_phishing_risk(claims, lexicon_hits, severe_content_hits, scam_hits)
 
 
 def test_benign_message_is_low_risk():
@@ -74,3 +76,40 @@ def test_severe_content_short_circuits_to_out_of_scope():
     assert result["risk_level"] == "OUT_OF_SCOPE"
     assert "not a statement that the content is safe" in result["summary"].lower()
     assert "likely legitimate" not in result["summary"].lower()  # the exact misleading phrase this fix removes
+
+
+def test_scam_content_without_phishing_signals_short_circuits_to_out_of_scope():
+    """Regression test: a stock-scam script (built for the Suspect Clip lexicon) pasted into
+    this phishing tool has zero phishing-specific signals, but it's still fraud — just not
+    phishing. Must not default to LOW risk / likely legitimate."""
+    claims = {
+        "claimed_sender": "Sunil Kapoor Research",
+        "urls_found": [],
+        "requested_actions": [],
+        "red_flag_phrases": [],
+        "verdict": "likely_legitimate",
+    }
+    scam_hits = {"guaranteed_returns": ["guaranteed return"], "unrealistic_multiplier": ["10x return"]}
+    with patch("app.services.phishing_risk_engine.llm_client.try_generate_text") as mock_llm:
+        result = compute_phishing_risk(claims, {}, scam_hits=scam_hits)
+        mock_llm.assert_not_called()
+
+    assert result["risk_level"] == "OUT_OF_SCOPE"
+    assert "suspect clip" in result["summary"].lower()
+    assert "likely legitimate" not in result["summary"].lower()
+
+
+def test_scam_hits_are_ignored_when_phishing_signals_already_present():
+    """If the message genuinely has phishing signals too, score it as phishing normally —
+    the scam-lexicon overlap shouldn't override a real phishing finding."""
+    claims = {
+        "claimed_sender": "SEBI",
+        "urls_found": ["https://evil.example.com"],
+        "requested_actions": [],
+        "red_flag_phrases": [],
+        "verdict": "likely_phishing",
+    }
+    lexicon_hits = {"credential_harvesting": ["verify your account"]}
+    scam_hits = {"guaranteed_returns": ["guaranteed return"]}
+    result = _compute(claims=claims, lexicon_hits=lexicon_hits, scam_hits=scam_hits)
+    assert result["risk_level"] != "OUT_OF_SCOPE"
